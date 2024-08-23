@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+from tqdm import tqdm
 
 
 class SeamCarver:
@@ -106,13 +107,17 @@ class SeamCarver:
             self.mask = self.rotate_mask(self.mask, 1)
             rotate = True
 
-        while len(np.where(self.mask[:, :] > 0)[0]) > 0:
-            energy_map = self.calc_energy_map()
-            energy_map[np.where(self.mask[:, :] > 0)] *= -self.constant
-            cumulative_map = self.cumulative_map_forward(energy_map)
-            seam_idx = self.find_seam(cumulative_map)
-            self.delete_seam(seam_idx)
-            self.delete_seam_on_mask(seam_idx)
+        total_seams = len(np.where(self.mask[:, :] > 0)[0])
+
+        with tqdm(total=total_seams, desc="Removing object seams", unit="seam") as pbar:
+            while len(np.where(self.mask[:, :] > 0)[0]) > 0:
+                energy_map = self.calc_energy_map()
+                energy_map[np.where(self.mask[:, :] > 0)] *= -self.constant
+                cumulative_map = self.cumulative_map_forward(energy_map)
+                seam_idx = self.find_seam(cumulative_map)
+                self.delete_seam(seam_idx)
+                self.delete_seam_on_mask(seam_idx)
+                pbar.update(1)
 
         if not rotate:
             num_pixels = self.in_width - self.out_image.shape[1]
